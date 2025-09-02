@@ -37,42 +37,52 @@ void ABGGameModeBase::BeginPlay()
 
 	SecretNumberString = GenerateSecretNumber();
 }
+//... (기존 include)
 
 void ABGGameModeBase::PrintChatMessageString(ABGPlayerController* InChattingPlayerController, const FString& InChatMessageString)
 {
-	FString ChatMessageString = InChatMessageString;
-	int Index = InChatMessageString.Len() - 3;
-	FString GuessNumberString = InChatMessageString.RightChop(Index);
-	if (IsGuessNumberString(GuessNumberString) == true)
-	{
-		FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
+    FString ChatMessageString = InChatMessageString;
+    int Index = InChatMessageString.Len() - 3;
+    FString GuessNumberString = InChatMessageString.RightChop(Index);
 
-		IncreaseGuessCount(InChattingPlayerController);
+    if (IsGuessNumberString(GuessNumberString) == true)
+    {
+        IncreaseGuessCount(InChattingPlayerController);
+        
+        ABGPlayerState* BGPS = InChattingPlayerController->GetPlayerState<ABGPlayerState>();
+        FString PlayerInfoString;
+        if (IsValid(BGPS) == true)
+        {
+            PlayerInfoString = BGPS->GetPlayerInfoString();
+        }
+    	
+        FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
+    	
+        FString CombinedMessageString = PlayerInfoString + TEXT(": ") + GuessNumberString + TEXT(" -> ") + JudgeResultString;
 
-		for (TActorIterator<ABGPlayerController> It(GetWorld()); It; ++It)
-		{
-			ABGPlayerController* BGPlayerController = *It;
-			if (IsValid(BGPlayerController) == true)
-			{
-				FString CombinedMessageString = InChatMessageString + TEXT(" -> ") + JudgeResultString;
-				BGPlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
-				
-				int32 StrikeCount = FCString::Atoi(*JudgeResultString.Left(1));
+        for (TActorIterator<ABGPlayerController> It(GetWorld()); It; ++It)
+        {
+            ABGPlayerController* BGPlayerController = *It;
+            if (IsValid(BGPlayerController) == true)
+            {
+                BGPlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
+                
+                int32 StrikeCount = FCString::Atoi(*JudgeResultString.Left(1));
                 JudgeGame(InChattingPlayerController, StrikeCount);
-			}
-		}
-	}
-	else
-	{
-		for (TActorIterator<ABGPlayerController> It(GetWorld()); It; ++It)
-		{
-			ABGPlayerController* BGPlayerController = *It;
-			if (IsValid(BGPlayerController) == true)
-			{
-				BGPlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
-			}
-		}
-	}
+            }
+        }
+    }
+    else 
+    {
+        for (TActorIterator<ABGPlayerController> It(GetWorld()); It; ++It)
+        {
+            ABGPlayerController* BGPlayerController = *It;
+            if (IsValid(BGPlayerController) == true)
+            {
+                BGPlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
+            }
+        }
+    }
 }
 FString ABGGameModeBase::GenerateSecretNumber()
 {
